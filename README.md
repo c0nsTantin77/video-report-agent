@@ -230,6 +230,34 @@ DeepSeek 优先读取 `DEEPSEEK_SEARCH_API_KEY`，留空时使用 `DEEPSEEK_API_
 
 保存配置后，为生成命令添加 `--term-correction` 即可启用；仅填写搜索配置不会自动开启纠错。配置保存到新任务，运行中的服务修改 `.env` 后需重启。详细证据规则与 Docker 配置见[术语修正说明](docs/term-correction.md)。
 
+## Fork 新增：本地转写与 YouTube 字幕
+
+本 fork 新增两个 CLI 入口。它们复用现有的任务监督、SQLite、Pi 报告生成与 PNG 导出。
+生成报告仍需配置 Pi 模型凭证；`--transcript-only` 不调用模型。
+
+```sh
+# 本地 UTF-8 TXT、Markdown、SRT 或 VTT，不需要视频链接或 ASR 凭证
+uv run video-report from-transcript captions.vtt --title '视频标题'
+uv run video-report from-transcript transcript.md --transcript-only
+
+# 公开 YouTube 单视频：默认获取英文作者字幕
+uv run video-report from-youtube 'https://www.youtube.com/watch?v=jNQXAC9IVRw'
+uv run video-report from-youtube 'https://youtu.be/jNQXAC9IVRw' --transcript-only
+
+# 明确选择平台自动字幕和语言；不会自动调用 ASR
+uv run video-report from-youtube 'https://www.youtube.com/watch?v=jNQXAC9IVRw' \
+  --language en --auto-captions --report-mode brief
+```
+
+本地输入会保存原始文本快照，并为段落或字幕分配来源 ID。TXT/Markdown 标记时间未知；SRT/VTT 保留时间。
+文件上限 10 MiB。YouTube 支持 watch、youtu.be 和 shorts 单视频地址，最长 5 小时。
+字幕获取最多等待 120 秒；不读取浏览器 Cookie，不下载音视频，不自动切换 ASR。
+字幕不可用时，命令返回失败状态，并提示更换语言、选择自动字幕或导入本地转写。
+新入口暂不使用转写缓存、画面辅助、术语搜索或独立绘图。
+
+小红书可以通过已合法取得的转写文件使用 `from-transcript`。直接下载小红书视频与 Linux 本地 ASR 尚待适配。
+原有 `generate` / `transcribe` 的 B站流程保持原接口。
+
 ## 运行与数据约定
 
 - **存储**：独立 CLI 默认使用 `runs/state.sqlite3`，保存任务、转写、报告 HTML 与缓存等结构化数据。任务目录里的 JSON、转写和 HTML 是执行导出；媒体、PNG、Pi 会话和诊断日志仍存文件。详见 [SQLite 存储](docs/sqlite-storage.md)。
