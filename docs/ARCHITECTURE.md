@@ -107,3 +107,13 @@ CLI 从当前运行目录加载 `.env`，进程环境优先；调用方可传模
 `ingest.probe_bilibili_video(source)` 通过现有 yt-dlp 只查询指定分 P 的标题与时长，不下载媒体、不创建任务文件；拒绝未知、非正时长和超过 5 小时的视频。返回规范 URL、BVID、分 P、video_id、title、duration。查询失败抛出 `UrlIngestError`，整体查询上限 45 秒。
 
 Standard 的布局选型由现有 Pi Agent 根据模式内关系—字段—误用—降级表完成，模板提供开放式定义、映射、步骤路线和分叉示例。整篇组件节奏与图文重复检查合并到原有集中检查。详见 [Standard 组件选型](standard-components.md)。
+
+## 本地转写与 YouTube 字幕入口
+
+`text_input.py` 验证输入并通过 `create_text_run` 登记任务。本地文本在登记时保存原始快照和规范转写。
+YouTube 网络请求在受监督 Worker 内运行，限制为单个视频与一个指定语言的字幕轨，最多等待 120 秒。
+它保留标题、作者、简介与时长，移除 yt-dlp 元数据中的临时媒体地址。
+
+`pipeline.generate` 按 `input_kind` 选择准备文字稿的路径。新增路径跳过 B站下载、ASR 与缓存，随后共用
+`transcript_only`、Pi、HTML 保存、PNG 导出、错误记录和任务完成逻辑。TXT/Markdown 的来源时间标为未知。
+新入口关闭画面辅助、术语搜索与独立绘图，不为这些功能伪造音频时间轴。
