@@ -40,12 +40,41 @@ def main():
             choices=["asr", "subtitle_track", "bilibili_ai"],
             help="Selected sources in primary-source order; OCR is deferred",
         )
+    for command in ("from-transcript", "from-youtube"):
+        imported = sub.add_parser(command)
+        imported.add_argument("source")
+        imported.add_argument("--title")
+        imported.add_argument("--report-mode", choices=["standard", "brief"], default="standard")
+        imported.add_argument("--transcript-only", action="store_true")
+        if command == "from-youtube":
+            imported.add_argument("--language", default="en")
+            imported.add_argument("--auto-captions", action="store_true")
     compare = sub.add_parser("compare-asr")
     compare.add_argument("--manifest", type=Path, required=True)
     subtitles = sub.add_parser("audit-subtitles")
     subtitles.add_argument("--manifest", type=Path, required=True)
     subtitles.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    if args.command in {"from-transcript", "from-youtube"}:
+        from .text_input import create_text_run
+
+        try:
+            run = create_text_run(
+                args.runs,
+                path=Path(args.source) if args.command == "from-transcript" else None,
+                url=args.source if args.command == "from-youtube" else None,
+                language=getattr(args, "language", "en"),
+                automatic=getattr(args, "auto_captions", False),
+                title=args.title,
+                report_mode=args.report_mode,
+                transcript_only=args.transcript_only,
+                database_path=args.database,
+            )
+        except (ValueError, OSError) as exc:
+            parser.error(str(exc))
+        status = generate(run, database_path=args.database)
+        print(json.dumps(status, ensure_ascii=False, indent=2))
+        return 0 if status["state"] in {"RENDERED", "TRANSCRIPT_READY"} else 1
     if args.command == "audit-subtitles":
         from .compare_subtitles import audit_subtitles
 
