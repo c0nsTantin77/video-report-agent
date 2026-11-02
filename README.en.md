@@ -253,3 +253,24 @@ uv lock --check
 - [Report evaluation](evals/report-review/README.md): public synthetic smoke inputs and optional live-model evaluation. HTML/source-link checks, content fidelity and visual quality need separate assessment.
 
 Callers use the packaged Skill by default. Experiments can select a complete directory through `PiRunner(skill_dir=...)` or the Worker environment variable `VIDEO_REPORT_SKILL_DIR`. Accounts, credits, queues and website deployment belong to the separate Web Service; public Core maintains generation capabilities.
+
+## Fork additions: local transcripts and YouTube captions
+
+Use `uv run video-report from-transcript captions.vtt` to import UTF-8 TXT, Markdown,
+SRT or VTT without a Bilibili URL. Files must not exceed 10 MiB. Plain text has no
+inferred timestamps. The original text is stored with the run.
+
+Use `uv run video-report from-youtube 'https://youtu.be/jNQXAC9IVRw'` for public
+YouTube captions. English author captions are the default. Use `--language en
+--auto-captions` to select automatic captions. Add `--transcript-only` to either
+command to stop before model generation. Reports still require Pi credentials.
+
+These commands use the existing worker, database, Pi runner and image renderer.
+YouTube requests do not read browser cookies or download media. Missing captions
+produce an error without ASR fallback. Videos must not exceed five hours.
+Caption retrieval has a 120-second timeout. These inputs do not use transcript
+caching, visual enhancement, term search or separate diagrams.
+
+Import an existing transcript to process Xiaohongshu content. Direct Xiaohongshu
+downloads and Linux local ASR remain future work. Existing Bilibili commands
+retain their interfaces.
